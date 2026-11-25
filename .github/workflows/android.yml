@@ -1,3 +1,4 @@
+
 name: Build Android APK
 
 on:
@@ -5,7 +6,7 @@ on:
   push:
     paths:
       - '.github/workflows/android.yml'
-      - 'SubDubFa_source.zip'
+      - 'SubDubFa_updated.zip'
 
 jobs:
   build:
@@ -17,8 +18,16 @@ jobs:
 
       - name: Extract source
         run: |
-          if [ -f SubDubFa_source.zip ]; then
-            unzip -o SubDubFa_source.zip
+          mkdir -p extracted
+          unzip -o SubDubFa_updated.zip -d extracted
+
+          if [ -f extracted/app/build.gradle.kts ]; then
+            echo "PROJECT_DIR=extracted" >> "$GITHUB_ENV"
+          elif [ -f extracted/SubDubFa/app/build.gradle.kts ]; then
+            echo "PROJECT_DIR=extracted/SubDubFa" >> "$GITHUB_ENV"
+          else
+            echo "Project structure not found"
+            exit 1
           fi
 
       - name: Set up Java
@@ -33,10 +42,10 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build APK
-        run: gradle -p SubDubFa assembleDebug
+        run: gradle -p "$PROJECT_DIR" --refresh-dependencies assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: SubDubFa-APK
-          path: SubDubFa/app/build/outputs/apk/debug/app-debug.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/app-debug.apk
